@@ -1,6 +1,72 @@
-@DeskFlow.API_HostAddress = http://localhost:5219
+@DeskFlow_HostAddress = http://localhost:5219
 
-GET {{DeskFlow.API_HostAddress}}/weatherforecast/
+### Listar categorias
+GET {{DeskFlow_HostAddress}}/api/categorias
 Accept: application/json
 
-###
+### Criar categoria
+POST {{DeskFlow_HostAddress}}/api/categorias
+Content-Type: application/json
+
+{
+  "nome": "Hardware"
+}
+
+### Buscar categoria por ID
+GET {{DeskFlow_HostAddress}}/api/categorias/1
+Accept: application/json
+
+### Atualizar categoria
+PUT {{DeskFlow_HostAddress}}/api/categorias/1
+Content-Type: application/json
+
+{
+  "nome": "Hardware e Periféricos"
+}
+
+### Criar chamado
+POST {{DeskFlow_HostAddress}}/api/chamados
+Content-Type: application/json
+
+{
+  "titulo": "Computador não liga",
+  "descricao": "Equipamento não apresenta sinal ao pressionar o botão.",
+  "prioridade": "Alta",
+  "solicitanteNome": "Joao",
+  "categoriaId": 1
+}
+
+### Listar chamados
+GET {{DeskFlow_HostAddress}}/api/chamados
+Accept: application/json
+
+### Filtrar chamados
+GET {{DeskFlow_HostAddress}}/api/chamados?status=Aberto&prioridade=Alta&categoriaId=1
+Accept: application/json
+
+### Buscar chamado por ID
+GET {{DeskFlow_HostAddress}}/api/chamados/1
+Accept: application/json
+
+### Iniciar atendimento
+PATCH {{DeskFlow_HostAddress}}/api/chamados/1/iniciar
+
+### Adicionar interação
+POST {{DeskFlow_HostAddress}}/api/chamados/1/interacoes
+Content-Type: application/json
+
+{
+  "autor": "Tecnico",
+  "mensagem": "Iniciado diagnóstico da fonte de alimentação."
+}
+
+### Encerrar chamado
+PATCH {{DeskFlow_HostAddress}}/api/chamados/1/encerrar
+Content-Type: application/json
+
+{
+  "solucao": "Fonte de alimentação substituída e equipamento testado."
+}
+
+### Excluir categoria (funciona apenas se não possuir chamados)
+DELETE {{DeskFlow_HostAddress}}/api/categorias/1

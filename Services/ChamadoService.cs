@@ -1,4 +1,5 @@
 using DeskFlow.API.Models.Entities;
+using DeskFlow.API.Models.Requests;
 using DeskFlow.API.Repositories;
 
 namespace DeskFlow.API.Services;
@@ -16,68 +17,82 @@ public class ChamadoService
         _categoriaRepository = categoriaRepository;
     }
 
-    public async Task<List<Chamado>> ListarAsync(
+    public Task<List<Chamado>> ListarAsync(
         StatusChamado? status,
         PrioridadeChamado? prioridade,
         int? categoriaId)
     {
-        return await _repository.ListarAsync(status, prioridade, categoriaId);
+        return _repository.ListarAsync(status, prioridade, categoriaId);
     }
 
-    public async Task<Chamado?> BuscarPorIdAsync(int id)
+    public Task<Chamado?> BuscarPorIdAsync(int id)
     {
-        return await _repository.BuscarPorIdAsync(id);
+        return _repository.BuscarPorIdAsync(id);
     }
 
-    public async Task<Chamado> CriarAsync(Chamado chamado)
+    public async Task<Chamado> CriarAsync(CriarChamadoRequest request)
     {
-        var categoria = await _categoriaRepository.BuscarPorIdAsync(chamado.CategoriaId);
+        if (string.IsNullOrWhiteSpace(request.Titulo))
+            throw new ArgumentException("O título do chamado é obrigatório.");
 
-        if (categoria == null)
-            throw new Exception("Categoria não encontrada.");
+        if (string.IsNullOrWhiteSpace(request.Descricao))
+            throw new ArgumentException("A descrição do chamado é obrigatória.");
 
-        chamado.Status = StatusChamado.Aberto;
-        chamado.DataAbertura = DateTime.Now;
-        chamado.DataFechamento = null;
-        chamado.Solucao = null;
+        if (string.IsNullOrWhiteSpace(request.SolicitanteNome))
+            throw new ArgumentException("O nome do solicitante é obrigatório.");
 
-        return await _repository.CriarAsync(chamado);
+        if (!Enum.IsDefined(request.Prioridade))
+            throw new ArgumentException("Prioridade inválida.");
+
+        var categoria = await _categoriaRepository.BuscarPorIdAsync(request.CategoriaId);
+        if (categoria is null)
+            throw new ArgumentException("A categoria informada não existe.");
+
+        var chamado = new Chamado
+        {
+            Titulo = request.Titulo.Trim(),
+            Descricao = request.Descricao.Trim(),
+            Prioridade = request.Prioridade,
+            Status = StatusChamado.Aberto,
+            SolicitanteNome = request.SolicitanteNome.Trim(),
+            DataAbertura = DateTime.Now,
+            DataFechamento = null,
+            Solucao = null,
+            CategoriaId = request.CategoriaId
+        };
+
+        await _repository.CriarAsync(chamado);
+
+        return await _repository.BuscarPorIdAsync(chamado.Id) ?? chamado;
     }
 
-    public async Task<bool> IniciarAsync(int id)
+    public async Task IniciarAsync(int id)
     {
-        var chamado = await _repository.BuscarPorIdAsync(id);
-
-        if (chamado == null)
-            return false;
+        var chamado = await _repository.BuscarPorIdAsync(id)
+            ?? throw new KeyNotFoundException("Chamado não encontrado.");
 
         if (chamado.Status != StatusChamado.Aberto)
-            throw new Exception("Somente chamados abertos podem ser iniciados.");
+            throw new InvalidOperationException("Somente chamados com status Aberto podem ser iniciados.");
 
         chamado.Status = StatusChamado.EmAndamento;
-
         await _repository.AtualizarAsync(chamado);
-        return true;
     }
 
-    public async Task<bool> EncerrarAsync(int id, string solucao)
+    public async Task EncerrarAsync(int id, string solucao)
     {
-        var chamado = await _repository.BuscarPorIdAsync(id);
-
-        if (chamado == null)
-            return false;
+        var chamado = await _repository.BuscarPorIdAsync(id)
+            ?? throw new KeyNotFoundException("Chamado não encontrado.");
 
         if (chamado.Status != StatusChamado.EmAndamento)
-            throw new Exception("Somente chamados em andamento podem ser encerrados.");
+            throw new InvalidOperationException("Somente chamados EmAndamento podem ser encerrados.");
 
         if (string.IsNullOrWhiteSpace(solucao))
-            throw new Exception("A solução é obrigatória.");
+            throw new ArgumentException("A solução é obrigatória para encerrar o chamado.");
 
         chamado.Status = StatusChamado.Fechado;
-        chamado.Solucao = solucao;
+        chamado.Solucao = solucao.Trim();
         chamado.DataFechamento = DateTime.Now;
 
         await _repository.AtualizarAsync(chamado);
-        return true;
     }
 }

@@ -12,42 +12,53 @@ public class CategoriaService
         _repository = repository;
     }
 
-    public async Task<List<Categoria>> ListarAsync()
+    public Task<List<Categoria>> ListarAsync()
     {
-        return await _repository.ListarAsync();
+        return _repository.ListarAsync();
     }
 
-    public async Task<Categoria?> BuscarPorIdAsync(int id)
+    public Task<Categoria?> BuscarPorIdAsync(int id)
     {
-        return await _repository.BuscarPorIdAsync(id);
+        return _repository.BuscarPorIdAsync(id);
     }
 
-    public async Task<Categoria> CriarAsync(Categoria categoria)
+    public async Task<Categoria> CriarAsync(string nome)
     {
+        ValidarNome(nome);
+
+        var categoria = new Categoria
+        {
+            Nome = nome.Trim()
+        };
+
         return await _repository.CriarAsync(categoria);
     }
 
-    public async Task<bool> AtualizarAsync(int id, Categoria dados)
+    public async Task AtualizarAsync(int id, string nome)
     {
-        var categoria = await _repository.BuscarPorIdAsync(id);
+        ValidarNome(nome);
 
-        if (categoria == null)
-            return false;
+        var categoria = await _repository.BuscarPorIdAsync(id)
+            ?? throw new KeyNotFoundException("Categoria não encontrada.");
 
-        categoria.Nome = dados.Nome;
+        categoria.Nome = nome.Trim();
         await _repository.AtualizarAsync(categoria);
-
-        return true;
     }
 
-    public async Task<bool> ExcluirAsync(int id)
+    public async Task ExcluirAsync(int id)
     {
-        var categoria = await _repository.BuscarPorIdAsync(id);
+        var categoria = await _repository.BuscarPorIdAsync(id)
+            ?? throw new KeyNotFoundException("Categoria não encontrada.");
 
-        if (categoria == null)
-            return false;
+        if (await _repository.PossuiChamadosAsync(id))
+            throw new InvalidOperationException("A categoria não pode ser excluída porque possui chamados associados.");
 
         await _repository.ExcluirAsync(categoria);
-        return true;
+    }
+
+    private static void ValidarNome(string nome)
+    {
+        if (string.IsNullOrWhiteSpace(nome))
+            throw new ArgumentException("O nome da categoria é obrigatório.");
     }
 }

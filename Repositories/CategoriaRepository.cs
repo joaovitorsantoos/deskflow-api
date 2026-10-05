@@ -15,12 +15,20 @@ public class CategoriaRepository
 
     public async Task<List<Categoria>> ListarAsync()
     {
-        return await _context.Categorias.ToListAsync();
+        return await _context.Categorias
+            .AsNoTracking()
+            .OrderBy(c => c.Nome)
+            .ToListAsync();
     }
 
     public async Task<Categoria?> BuscarPorIdAsync(int id)
     {
         return await _context.Categorias.FindAsync(id);
+    }
+
+    public async Task<bool> PossuiChamadosAsync(int categoriaId)
+    {
+        return await _context.Chamados.AnyAsync(c => c.CategoriaId == categoriaId);
     }
 
     public async Task<Categoria> CriarAsync(Categoria categoria)

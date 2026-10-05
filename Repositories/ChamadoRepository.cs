@@ -19,6 +19,7 @@ public class ChamadoRepository
         int? categoriaId)
     {
         var query = _context.Chamados
+            .AsNoTracking()
             .Include(c => c.Categoria)
             .AsQueryable();
 
@@ -31,7 +32,9 @@ public class ChamadoRepository
         if (categoriaId.HasValue)
             query = query.Where(c => c.CategoriaId == categoriaId.Value);
 
-        return await query.ToListAsync();
+        return await query
+            .OrderByDescending(c => c.DataAbertura)
+            .ToListAsync();
     }
 
     public async Task<Chamado?> BuscarPorIdAsync(int id)
@@ -46,7 +49,6 @@ public class ChamadoRepository
     {
         _context.Chamados.Add(chamado);
         await _context.SaveChangesAsync();
-
         return chamado;
     }
 

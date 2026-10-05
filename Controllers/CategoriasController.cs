@@ -1,4 +1,5 @@
 using DeskFlow.API.Models.Entities;
+using DeskFlow.API.Models.Requests;
 using DeskFlow.API.Services;
 using Microsoft.AspNetCore.Mvc;
 
@@ -21,48 +22,35 @@ public class CategoriasController : ControllerBase
         return Ok(await _service.ListarAsync());
     }
 
-    [HttpGet("{id}")]
+    [HttpGet("{id:int}")]
     public async Task<ActionResult<Categoria>> BuscarPorId(int id)
     {
         var categoria = await _service.BuscarPorIdAsync(id);
 
-        if (categoria == null)
-            return NotFound();
+        if (categoria is null)
+            return NotFound(new { erro = "Categoria não encontrada." });
 
         return Ok(categoria);
     }
 
     [HttpPost]
-    public async Task<ActionResult<Categoria>> Criar(Categoria categoria)
+    public async Task<ActionResult<Categoria>> Criar([FromBody] CategoriaRequest request)
     {
-        var criada = await _service.CriarAsync(categoria);
-
-        return CreatedAtAction(
-            nameof(BuscarPorId),
-            new { id = criada.Id },
-            criada
-        );
+        var categoria = await _service.CriarAsync(request.Nome);
+        return CreatedAtAction(nameof(BuscarPorId), new { id = categoria.Id }, categoria);
     }
 
-    [HttpPut("{id}")]
-    public async Task<IActionResult> Atualizar(int id, Categoria categoria)
+    [HttpPut("{id:int}")]
+    public async Task<IActionResult> Atualizar(int id, [FromBody] CategoriaRequest request)
     {
-        var atualizado = await _service.AtualizarAsync(id, categoria);
-
-        if (!atualizado)
-            return NotFound();
-
+        await _service.AtualizarAsync(id, request.Nome);
         return NoContent();
     }
 
-    [HttpDelete("{id}")]
+    [HttpDelete("{id:int}")]
     public async Task<IActionResult> Excluir(int id)
     {
-        var excluido = await _service.ExcluirAsync(id);
-
-        if (!excluido)
-            return NotFound();
-
+        await _service.ExcluirAsync(id);
         return NoContent();
     }
 }
